@@ -52,7 +52,6 @@ AGENT_SYS_PROMPT = '''
 【我现在的指令是:】
 '''
 
-
 def agent_plan(AGENT_PROMPT='前进1米'):
     print('Agent智能体编排动作')
     PROMPT = AGENT_SYS_PROMPT + AGENT_PROMPT

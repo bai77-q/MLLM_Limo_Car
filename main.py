@@ -1,26 +1,23 @@
-from car_actions import *  # 导入car_actions.py中的所有函数
-from camera import *  # 导入camera.py中的所有函数
+#from camera import *  # 导入camera.py中的所有函数
 # from voice_recognition import *  # 导入voice_recognition.py中的所有函数
-from utils_llmPrompts import *  # 导入nlp_processing.py中的所有函数
-from multimodal import *  # 导入multimodal_processing.py中的所有函数
-from utils_llm import *
+#from utils_llmPrompts import *  # 导入nlp_processing.py中的所有函数
+#from multimodal import *  # 导入multimodal_processing.py中的所有函数
+#from utils_llm import *
 # from utils_tts import *
-from get_distences import *
-from get_image import *
+#from get_distences import *
+#from get_image import *
 import time  # 导入time模块用于添加延时
 # 导入小车的包
 import sys
+from utils_llmPrompts import agent_plan
 sys.path.append('/home/agilex/.local/lib/python3.8/site-packages')
 from pylimo import limo
-import time
+
 
 def agent_play():
     '''
-    主函数，语音控制机械臂智能体编排动作
+    主函数，控制智能体编排动作
     '''
-    # 小车初始化
-    limo = limo.LIMO()
-    limo.EnableCommand()  # 使能控制
 
     # 输入指令
     order = input('请输入指令')
@@ -44,7 +41,7 @@ def agent_play():
                 time.sleep(0.5)  # 每个任务之间添加0.5秒的缓冲时间
             except Exception as e:
                 print(f'执行动作 {each} 时发生错误: {e}')
-        brake()  # 每次分析完，小车必须停止
+        #brake()  # 每次分析完，小车必须停止
 
         plan_ok = input('动作执行完成，是否继续？按c继续输入新指令，按q退出\n')
         if plan_ok == 'q':
@@ -56,6 +53,13 @@ def agent_play():
         else:
             print('无效输入，程序结束')
             break
+
+# agent_play()
+if __name__ == '__main__':
+    # 小车初始化
+    limo = limo.LIMO()
+    limo.EnableCommand()  # 使能控制
+    agent_play()
 
     # while True:
     #
@@ -135,7 +139,4 @@ def agent_play():
     #     raise NameError('按q退出')
 
 
-# agent_play()
-if __name__ == '__main__':
-    agent_play()
 
