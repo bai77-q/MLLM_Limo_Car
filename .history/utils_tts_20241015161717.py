@@ -295,5 +295,5 @@ def generate_and_play_audio(text):
         print("发生错误:", err)
 
 # 调用函数进行文本转换和播放
-# text_to_speech = "您好，我是Limo—002332。"
-# generate_and_play_audio(text_to_speech)
+text_to_speech = "您好，我是Limo—002332。"
+generate_and_play_audio(text_to_speech)

@@ -277,7 +277,7 @@ def generate_and_play_audio(text):
             audio_base64 = response_data['Response']['Audio']
 
             # 解码并保存 WAV 文件
-            output_folder = "output/text_voice"
+            output_folder = "MLLM_LIMO_CAR/output/text_voice"
             output_file = get_next_filename(output_folder)
             audio_data = base64.b64decode(audio_base64)
             with open(output_file, "wb") as wav_file:
@@ -295,5 +295,5 @@ def generate_and_play_audio(text):
         print("发生错误:", err)
 
 # 调用函数进行文本转换和播放
-# text_to_speech = "您好，我是Limo—002332。"
-# generate_and_play_audio(text_to_speech)
+text_to_speech = "您好，我是Limo—002332。"
+generate_and_play_audio(text_to_speech)

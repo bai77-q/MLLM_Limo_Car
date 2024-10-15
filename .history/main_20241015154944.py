@@ -4,7 +4,7 @@ from camera import *  # 导入camera.py中的所有函数
 #from utils_llmPrompts import *  # 导入nlp_processing.py中的所有函数
 from  utils_mllm import *  # 导入multimodal_processing.py中的所有函数
 #from utils_llm import *
-from utils_tts import *
+# from utils_tts import *
 #from get_distences import *
 #from get_image import *
 import time  # 导入time模块用于添加延时
@@ -21,39 +21,16 @@ def agent_play():
     '''
     主函数，控制智能体编排动作
     '''
-    text_to_speech = "您好，我是Limo—002332,很高兴为您服务。输入1为文本输入，输入2为语音输入。"
-    generate_and_play_audio(text_to_speech)
 
-    # 获取用户输入
-    choice = input("请输入1选择文本输入，或者2选择语音输入：")
+    # 输入指令
+    order = input('请输入指令')
+    # 初步：最简单的行动，输入指令到大模型，大模型分析动作返回JSON调用函数
 
-    if choice == "1":
-        # 文本输入
-        text_to_speech = "您已选择文本输入，请输入您的指令。"
-        generate_and_play_audio(text_to_speech)
-        order = input("请输入指令：")
-        print(f"文本输入的指令：{order}")
-
-    elif choice == "2":
-        # 语音输入
-        text_to_speech = "您已选择语音输入，请开始说话。"
-        generate_and_play_audio(text_to_speech)
-
-        # 调用录音函数并进行语音识别
-        record()
-        order = recognize_speech(WAVE_OUTPUT_FILENAME)
-
-        if order:
-            print(f"语音识别的指令：{order}")
-        else:
-            print("未能识别语音，请重试。")
-
-    else:
-        # 无效输入处理
-        text_to_speech = "无效的输入，请输入1或2。"
-        generate_and_play_audio(text_to_speech)
-        print("无效的输入，请输入1或2。")
-
+    # 录音并进行语音识别
+    # record()  # 调用录音函数
+    # recognize_speech(AUDIO_FILE_PATH)
+    # order = recognize_speech(AUDIO_FILE_PATH)  # 进行语音识别
+    # print(f"指令: {order}")
     while True:
 
         # 1、普通相机开启与rgb图片放到服务器
@@ -68,12 +45,12 @@ def agent_play():
         # break
 
         # 智能体Agent编排动作。多模态大模型
-        # agent_plan_output = eval(call_mllm_to_actions(rgb_image_url,depth_image_url,order))
+        agent_plan_output = eval(call_mllm_to_actions(rgb_image_url,depth_image_url,order))
 
         # 智能体Agent编排动作。普通大模型
         # agent_plan_output = eval(agent_plan(order))
 
-        # print('智能体编排动作如下\n', agent_plan_output)
+        print('智能体编排动作如下\n', agent_plan_output)
         
         break
 
