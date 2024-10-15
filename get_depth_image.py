@@ -11,7 +11,7 @@ MIN_DEPTH = 20  # 最小深度，单位为毫米
 MAX_DEPTH = 10000  # 最大深度，单位为毫米
 
 # 创建输出目录
-output_dir = os.path.join(os.path.dirname(__file__), 'output')
+output_dir = os.path.join(os.path.dirname(__file__), 'output/depth_image')
 os.makedirs(output_dir, exist_ok=True)
 
 class TemporalFilter:

@@ -278,7 +278,7 @@ def generate_and_play_audio(text):
             audio_base64 = response_data['Response']['Audio']
 
             # 解码并保存WAV文件
-            output_folder = "output/text_voice"
+            output_folder = "MLLM_LIMO_CAR/output/text_voice"
             output_file = get_next_filename(output_folder)
             audio_data = base64.b64decode(audio_base64)
             with open(output_file, "wb") as wav_file:

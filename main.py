@@ -51,6 +51,7 @@ def agent_play():
         # agent_plan_output = eval(agent_plan(order))
 
         print('智能体编排动作如下\n', agent_plan_output)
+        
         break
 
         # 执行智能体编排的每个函数
