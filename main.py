@@ -1,7 +1,8 @@
-#from camera import *  # 导入camera.py中的所有函数
+from local_server import *
+from camera import *  # 导入camera.py中的所有函数
 # from voice_recognition import *  # 导入voice_recognition.py中的所有函数
 #from utils_llmPrompts import *  # 导入nlp_processing.py中的所有函数
-#from multimodal import *  # 导入multimodal_processing.py中的所有函数
+from  utils_mllm import *  # 导入multimodal_processing.py中的所有函数
 #from utils_llm import *
 # from utils_tts import *
 #from get_distences import *
@@ -12,6 +13,8 @@ import sys
 from utils_llmPrompts import agent_plan
 sys.path.append('/home/agilex/.local/lib/python3.8/site-packages')
 from pylimo import limo
+from voice_recognition import *
+from depth_camera import *
 
 
 def agent_play():
@@ -21,24 +24,41 @@ def agent_play():
 
     # 输入指令
     order = input('请输入指令')
-
     # 初步：最简单的行动，输入指令到大模型，大模型分析动作返回JSON调用函数
+
+    # 录音并进行语音识别
+    # record()  # 调用录音函数
+    # recognize_speech(AUDIO_FILE_PATH)
+    # order = recognize_speech(AUDIO_FILE_PATH)  # 进行语音识别
+    # print(f"指令: {order}")
     while True:
 
+        # 1、普通相机开启与rgb图片放到服务器
+        rgb_image_url = get_image_and_upload_to_cos() 
+        print("rgb图片地址：" + rgb_image_url)
+        # 2、深度相机开启与图片放到服务器获取URL
+        depth_image_url = load_depth_camera()
+        print("深度图片地址：" + depth_image_url)
+        # # 只查看图片信息的调试
+        # info = call_mllm_for_images(rgb_image_url,depth_image_url,order)
+        # print(info)
+        # break
+
         # 智能体Agent编排动作。多模态大模型
-        # agent_plan_output = eval(call_openai_api(images,distances,order))
+        agent_plan_output = eval(call_mllm_to_actions(rgb_image_url,depth_image_url,order))
 
         # 智能体Agent编排动作。普通大模型
-        agent_plan_output = eval(agent_plan(order))
+        # agent_plan_output = eval(agent_plan(order))
 
         print('智能体编排动作如下\n', agent_plan_output)
+        break
 
         # 执行智能体编排的每个函数
         for each in agent_plan_output['function']:  # 运行智能体规划编排的每个函数
             try:
                 print('开始执行动作:', each)
                 eval(each)  # 执行每个函数
-                time.sleep(0.5)  # 每个任务之间添加0.5秒的缓冲时间
+                # time.sleep(0.5)  # 每个任务之间添加0.5秒的缓冲时间
             except Exception as e:
                 print(f'执行动作 {each} 时发生错误: {e}')
         #brake()  # 每次分析完，小车必须停止

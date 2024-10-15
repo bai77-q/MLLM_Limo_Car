@@ -1,156 +1,150 @@
-# utils_asr.py
-# 同济子豪兄 2024-5-22
-# 录音+语音识别
 
-print('导入录音+语音识别模块')
-
-import pyaudio
-import wave
-import numpy as np
+import base64
+import json
 import os
-import sys
-from API_KEY import *
+import wave
+import pyaudio
+import requests
 
+API_KEY = "VtOJDzsN8rk5OsgesGQ4GI5b"
+SECRET_KEY = "uJKeunrIrb4ZEAvblzILoVIu5mFCUfMa"
 
-# 确定麦克风索引号
-# import sounddevice as sd
-# print(sd.query_devices())
+# 设置音频参数
+CHUNK = 512
+FORMAT = pyaudio.paInt16
+CHANNELS = 1  # 单通道
+RATE = 16000  # 常见的采样率
+RECORD_SECONDS = 8
+OUTPUT_DIR = "output/voice_text"  # 文件夹名称
 
-def record(MIC_INDEX=0, DURATION=5):
-    '''
-    调用麦克风录音，需用arecord -l命令获取麦克风ID
-    DURATION，录音时长
-    '''
-    print('开始 {} 秒录音'.format(DURATION))
-    os.system(
-        'sudo arecord -D "plughw:{}" -f dat -c 1 -r 16000 -d {} temp/speech_record.wav'.format(MIC_INDEX, DURATION))
-    print('录音结束')
+def ensure_output_dir():
+    """确保输出目录存在"""
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
 
+def get_current_filename():
+    """获取当前文件名，如果不存在则返回 voice_text1.wav"""
+    ensure_output_dir()
+    existing_files = [f for f in os.listdir(OUTPUT_DIR) if f.startswith("voice_text") and f.endswith(".wav")]
+    if not existing_files:
+        return os.path.join(OUTPUT_DIR, "voice_text1.wav")
+    else:
+        max_num = max([int(f.split("voice_text")[1].split(".wav")[0]) for f in existing_files])
+        return os.path.join(OUTPUT_DIR, f"voice_text{max_num}.wav")
 
-def record_auto(MIC_INDEX=1):
-    '''
-    开启麦克风录音，保存至'temp/speech_record.wav'音频文件
-    音量超过阈值自动开始录音，低于阈值一段时间后自动停止录音
-    MIC_INDEX：麦克风设备索引号
-    '''
+def get_next_filename():
+    """生成下一个文件名"""
+    ensure_output_dir()
+    existing_files = [f for f in os.listdir(OUTPUT_DIR) if f.startswith("voice_text") and f.endswith(".wav")]
+    if not existing_files:
+        return os.path.join(OUTPUT_DIR, "voice_text1.wav")
+    else:
+        max_num = max([int(f.split("voice_text")[1].split(".wav")[0]) for f in existing_files])
+        return os.path.join(OUTPUT_DIR, f"voice_text{max_num + 1}.wav")
 
-    CHUNK = 1024  # 采样宽度
-    RATE = 16000  # 采样率
-
-    QUIET_DB = 2000  # 分贝阈值，大于则开始录音，否则结束
-    delay_time = 1  # 声音降至分贝阈值后，经过多长时间，自动终止录音
-
-    FORMAT = pyaudio.paInt16
-    CHANNELS = 1 if sys.platform == 'darwin' else 2  # 采样通道数
-
-    # 初始化录音
+def record():
+    """录音函数"""
     p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT,
-                    channels=CHANNELS,
-                    rate=RATE,
-                    input=True,
-                    frames_per_buffer=CHUNK,
-                    input_device_index=MIC_INDEX
-                    )
+    frames = []
 
-    frames = []  # 所有音频帧
+    try:
+        stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+        print("录音开始...")
 
-    flag = False  # 是否已经开始录音
-    quiet_flag = False  # 当前音量小于阈值
+        for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+            data = stream.read(CHUNK)
+            frames.append(data)
 
-    temp_time = 0  # 当前时间是第几帧
-    last_ok_time = 0  # 最后正常是第几帧
-    START_TIME = 0  # 开始录音是第几帧
-    END_TIME = 0  # 结束录音是第几帧
+        print("录音结束。")
 
-    print('可以说话啦！')
+    except Exception as e:
+        print(f"录音过程中发生错误：{e}")
 
-    while True:
+    finally:
+        if 'stream' in locals():
+            stream.stop_stream()
+            stream.close()
+        p.terminate()
 
-        # 获取当前chunk的声音
-        data = stream.read(CHUNK, exception_on_overflow=False)
-        frames.append(data)
-        # 获取当前chunk的音量分贝值
-        temp_volume = np.max(np.frombuffer(data, dtype=np.short))
+    if frames:
+        output_file = get_next_filename()
+        print(f"正在将音频写入 {output_file}")
+        try:
+            with wave.open(output_file, 'wb') as wf:
+                wf.setnchannels(CHANNELS)
+                wf.setsampwidth(p.get_sample_size(FORMAT))
+                wf.setframerate(RATE)
+                wf.writeframes(b''.join(frames))
+            print("音频写入成功。")
+        except Exception as e:
+            print(f"写入 WAV 文件时发生错误：{e}")
+    else:
+        print("未捕获到任何音频帧！")
 
-        if temp_volume > QUIET_DB and flag == False:
-            print("音量高于阈值，开始录音")
-            flag = True
-            START_TIME = temp_time
-            last_ok_time = temp_time
+def get_access_token():
+    """获取百度Access Token"""
+    url = "https://aip.baidubce.com/oauth/2.0/token"
+    params = {"grant_type": "client_credentials", "client_id": API_KEY, "client_secret": SECRET_KEY}
+    response = requests.post(url, params=params)
+    if response.ok:
+        return response.json().get("access_token")
+    else:
+        print(f"Error fetching token: {response.text}")
+        return None
 
-        if flag:  # 录音中的各种情况
+def recognize_speech():
+    """使用百度API进行语音识别"""
+    current_file = get_current_filename()
+    if not os.path.exists(current_file):
+        print(f"文件 {current_file} 不存在，无法进行语音识别。")
+        return
 
-            if (temp_volume < QUIET_DB and quiet_flag == False):
-                print("录音中，当前音量低于阈值")
-                quiet_flag = True
-                last_ok_time = temp_time
+    token = get_access_token()
+    if not token:
+        print("无法获取token")
+        return
 
-            if (temp_volume > QUIET_DB):
-                # print('录音中，当前音量高于阈值，正常录音')
-                quiet_flag = False
-                last_ok_time = temp_time
+    url = "https://vop.baidu.com/server_api"
 
-            if (temp_time > last_ok_time + delay_time * 15 and quiet_flag == True):
-                print("音量低于阈值{:.2f}秒后，检测当前音量".format(delay_time))
-                if (quiet_flag and temp_volume < QUIET_DB):
-                    print("当前音量仍然小于阈值，录音结束")
-                    END_TIME = temp_time
-                    break
-                else:
-                    print("当前音量重新高于阈值，继续录音中")
-                    quiet_flag = False
-                    last_ok_time = temp_time
+    with open(current_file, 'rb') as f:
+        audio_data = f.read()
 
-        # print('当前帧 {} 音量 {}'.format(temp_time+1, temp_volume))
-        temp_time += 1
-        if temp_time > 150:  # 超时直接退出
-            END_TIME = temp_time
-            print('超时，录音结束')
-            break
+    audio_base64 = base64.b64encode(audio_data).decode('utf-8')
 
-    # 停止录音
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
+    payload = json.dumps({
+        "format": "wav",
+        "rate": 16000,
+        "channel": 1,
+        "cuid": "w1Xl5WcuZ7rA9OLMxBxTm9nRhWJ631V1",
+        "token": token,
+        "speech": audio_base64,
+        "len": len(audio_data)
+    })
 
-    # 导出wav音频文件
-    output_path = 'temp/speech_record.wav'
-    wf = wave.open(output_path, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
-    wf.writeframes(b''.join(frames[START_TIME - 2:END_TIME]))
-    wf.close()
-    print('保存录音文件', output_path)
+    headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
 
+    response = requests.post(url, headers=headers, data=payload)
 
-import appbuilder
+    if response.ok:
+        result = response.json().get("result", [])
+        if result:
+            return result[0]
+        else:
+            print("未识别到任何内容。")
+            return None
+    else:
+        print("请求失败:", response.text)
+        return None
 
-# 配置密钥
-os.environ["APPBUILDER_TOKEN"] = APPBUILDER_TOKEN
-asr = appbuilder.ASR()  # 语音识别组件
-
-
-def speech_recognition(audio_path='temp/speech_record.wav'):
-    '''
-    AppBuilder-SDK语音识别组件
-    '''
-    print('开始语音识别')
-    # 载入wav音频文件
-    with wave.open(audio_path, 'rb') as wav_file:
-        # 获取音频文件的基本信息
-        num_channels = wav_file.getnchannels()
-        sample_width = wav_file.getsampwidth()
-        framerate = wav_file.getframerate()
-        num_frames = wav_file.getnframes()
-
-        # 获取音频数据
-        frames = wav_file.readframes(num_frames)
-
-    # 向API发起请求
-    content_data = {"audio_format": "wav", "raw_audio": frames, "rate": 16000}
-    message = appbuilder.Message(content_data)
-    speech_result = asr.run(message).content['result'][0]
-    print('语音识别结果：', speech_result)
-    return speech_result
+if __name__ == "__main__":
+    # 录音
+    record()
+    # 语音识别
+    command = recognize_speech()
+    if command:
+        print(f"识别到的指令：{command}")
+    else:
+        print("未能识别到有效指令。")
